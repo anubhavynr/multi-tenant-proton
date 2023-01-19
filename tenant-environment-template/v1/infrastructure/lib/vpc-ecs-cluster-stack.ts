@@ -12,8 +12,9 @@ export class VpcEcsClusterStack extends Stack {
 
     const environmentInputs = input.environment.inputs;
     const stackName = props.stackName ?? input.environment.name;
-
-    const vpc = new ec2.Vpc(this, "ProtonVPC", {
+    const tenantId =  environmentInputs.tenantId;
+    
+    const vpc = new ec2.Vpc(this, tenantId + "VPC", {
       vpcName: stackName,
       cidr: environmentInputs.vpc_cidr_block,
       maxAzs: 2,
