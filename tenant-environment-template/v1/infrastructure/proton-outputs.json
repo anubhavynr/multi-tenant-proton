@@ -1,0 +1,9 @@
+{
+  "cdk-env-demo": {
+    "ECSClusterArn": "arn:aws:ecs:us-east-1:649018736832:cluster/cdk-env-demo",
+    "ECSClusterSecGrps": "[]",
+    "VPCId": "vpc-0dd8beca8d4d4ea6d",
+    "ECSClusterName": "cdk-env-demo",
+    "ECSClusterSDNamespace": "testtenant.saasapplication.com"
+  }
+}
