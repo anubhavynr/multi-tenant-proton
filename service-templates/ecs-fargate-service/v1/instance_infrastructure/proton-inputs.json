@@ -1,0 +1,30 @@
+{
+  "environment": {
+    "account_id": "649018736832",
+    "name": "tenantA-env",
+    "outputs": {
+      "ECSClusterArn": "arn:aws:ecs:us-east-1:649018736832:cluster/tenantA-env",
+      "ECSClusterSecGrps": "[]",
+      "VPCId": "vpc-069a61126ecf9c576",
+      "ECSClusterName": "tenantA-env",
+      "ECSClusterSDNamespace": "tenantA.saasapplication.com"
+    }
+  },
+  "service": {
+    "name": "product-service",
+    "repository_connection_arn": "",
+    "repository_id": "",
+    "branch_name": ""
+  },
+  "service_instance": {
+    "name": "tenantA-productService",
+    "inputs": {
+      "port": 80,
+      "desired_count": 1,
+      "task_size": "x-small",
+      "image": "public.ecr.aws/nginx/nginx:stable",
+      "load_balanced": true,
+      "load_balanced_public": true
+    }
+  }
+}
