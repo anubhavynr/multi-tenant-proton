@@ -2,6 +2,7 @@ schema:
   format:
     openapi: "3.0.0"
   service_input_type: "ECSFargateSvcInputs"
+  pipeline_input_type: "PipelineInputs"
   types:
     ECSFargateSvcInputs:
       type: object
@@ -49,3 +50,19 @@ schema:
           type: boolean
           description: "This determines where the load balancer is placed in the network - internet facing or private to the vpc"
           default: public
+    PipelineInputs:
+      type: object
+      description: "Pipeline input properties"
+      properties:
+        dockerfile:
+          type: string
+          description: "The location of the Dockerfile to build"
+          default: "Dockerfile"
+          minLength: 1
+          maxLength: 100
+        unit_test_command:
+          type: string
+          description: "The command to run to unit test the application code"
+          default: "echo 'add your unit test command here'"
+          minLength: 1
+          maxLength: 200
