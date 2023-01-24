@@ -1,0 +1,352 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Deploy a service on AWS Fargate, hosted in a public subnet, and accessible via a load balancer.
+  Provide service-level networking and collect traces and metrics
+Mappings:
+  TaskSize:
+    x-small:
+      Cpu: 256
+      Memory: 512
+      ServiceCpu: 128
+      ServiceMemory: 256
+      SidecarCpu: 64
+      SidecarMemory: 128
+    small:
+      Cpu: 512
+      Memory: 1024
+      ServiceCpu: 256
+      ServiceMemory: 512
+      SidecarCpu: 128
+      SidecarMemory: 256
+    medium:
+      Cpu: 1024
+      Memory: 2048
+      ServiceCpu: 512
+      ServiceMemory: 1024
+      SidecarCpu: 256
+      SidecarMemory: 512
+    large:
+      Cpu: 2048
+      Memory: 4096
+      ServiceCpu: 1024
+      ServiceMemory: 2048
+      SidecarCpu: 512
+      SidecarMemory: 1024
+    x-large:
+      Cpu: 4096
+      Memory: 8192
+      ServiceCpu: 2048
+      ServiceMemory: 4096
+      SidecarCpu: 1024
+      SidecarMemory: 2048
+Resources:
+  # A log group for storing the stdout logs from this service's containers
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: '{{service.name}}/{{service_instance.name}}'
+  # The task definition. This is a simple metadata description of what
+  # container to run, and what resource requirements it has.
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: '{{service.name}}_{{service_instance.name}}'
+      Cpu: !FindInMap [TaskSize, '{{service_instance.inputs.task_size}}', Cpu]
+      Memory: !FindInMap [TaskSize, '{{service_instance.inputs.task_size}}', Memory]
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: '{{environment.outputs.ECSTaskExecutionRole}}'
+      TaskRoleArn: !!str "{{environment.outputs.ECSTaskRole}}"
+      ContainerDefinitions:
+        - Name: '{{service_instance.name}}'
+          Image: '{{service_instance.inputs.image}}'
+          Cpu: !FindInMap [TaskSize, '{{service_instance.inputs.task_size}}', ServiceCpu]
+          Memory: !FindInMap [TaskSize, '{{service_instance.inputs.task_size}}', ServiceMemory]
+          Environment:
+            {% set env_vars = service_instance.inputs.env_vars.split(';') %}
+            {% for env_var in  env_vars %}
+            {% set env_name, env_value = env_var.split('=') %}
+            - Name: '{{ env_name|trim }}'
+              Value: '{{ env_value|trim }}'
+              {% endfor %}
+          PortMappings:
+            - ContainerPort: '{{service_instance.inputs.port}}'
+          LogConfiguration:
+            LogDriver: 'awslogs'
+            Options:
+              awslogs-create-group: 'True'
+              awslogs-group: '{{service.name}}/{{service_instance.name}}'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: 'fargate/service/{{service.name}}'
+          DependsOn:
+            - ContainerName: envoy
+              Condition: HEALTHY
+            - ContainerName: otel-collector
+              Condition: START
+        - Name: envoy
+          Image: 'public.ecr.aws/appmesh/aws-appmesh-envoy:v1.19.0.0-prod'
+          Cpu: !FindInMap [TaskSize, '{{service_instance.inputs.task_size}}', SidecarCpu]
+          Memory: !FindInMap [TaskSize, '{{service_instance.inputs.task_size}}', SidecarMemory]
+          Environment:
+            - Name: "APPMESH_RESOURCE_ARN"
+              Value: "{{environment.outputs.MeshARN}}/virtualNode/{{service_instance.name}}-lb"
+            - Name: "ENABLE_ENVOY_XRAY_TRACING"
+              Value: "1"
+            - Name: "ENABLE_ENVOY_STATS_TAGS"
+              Value: "1"
+            - Name: "ENVOY_LOG_LEVEL"
+              Value: "debug"
+          HealthCheck:
+            Command:
+              - "CMD-SHELL"
+              - "curl -s http://localhost:9901/server_info | grep state | grep -q LIVE"
+            Retries: 3
+            Timeout: 2
+            StartPeriod: 10
+            Interval: 5
+          Essential: True
+          User: "1337"
+          PortMappings:
+            - ContainerPort: 9901
+              Protocol: "tcp"
+            - ContainerPort: 15000
+              Protocol: "tcp"
+            - ContainerPort: 15001
+              Protocol: "tcp"
+          LogConfiguration:
+            LogDriver: 'awslogs'
+            Options:
+              awslogs-create-group: 'True'
+              awslogs-group: '{{service.name}}/{{service_instance.name}}'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: 'fargate/envoy/{{service.name}}'
+        - Name: otel-collector
+          Image: 'public.ecr.aws/aws-observability/aws-otel-collector:latest'
+          Secrets:
+            - Name: "AOT_CONFIG_CONTENT"
+              ValueFrom: "{{environment.outputs.OtelConfigName}}"
+          Cpu: !FindInMap [TaskSize, '{{service_instance.inputs.task_size}}', SidecarCpu]
+          Memory: !FindInMap [TaskSize, '{{service_instance.inputs.task_size}}', SidecarMemory]
+          Essential: True
+          PortMappings:
+            - ContainerPort: 4317
+              Protocol: "tcp"
+            - ContainerPort: 55681
+              Protocol: "tcp"
+            - ContainerPort: 2000
+              Protocol: "udp"
+            - ContainerPort: 8125
+              Protocol: "tcp"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-create-group: 'True'
+              awslogs-group: '{{service.name}}/{{service_instance.name}}'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: fargate/otel
+      ProxyConfiguration:
+        ContainerName: envoy
+        Type: APPMESH
+        ProxyConfigurationProperties:
+          - Name: 'AppPorts'
+            Value: '{{service_instance.inputs.port}}'
+          - Name: 'EgressIgnoredIPs'
+            Value: '169.254.170.2,169.254.169.254'
+          - Name: 'IgnoredUID'
+            Value: '1337'
+          - Name: 'ProxyEgressPort'
+            Value: '15001'
+          - Name: 'ProxyIngressPort'
+            Value: '15000'
+  # The service_instance.inputs. The service is a resource which allows you to run multiple
+  # copies of a type of task, and gather up their logs and metrics, as well
+  # as monitor the number of running tasks and replace any that have crashed
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: LoadBalancerRule
+    Properties:
+      ServiceName: '{{service.name}}_{{service_instance.name}}_spot'
+      Cluster: '{{environment.outputs.ClusterName}}'
+      CapacityProviderStrategy:
+        - CapacityProvider: FARGATE_SPOT
+          Weight: 1
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 75
+      DesiredCount: '{{service_instance.inputs.desired_count}}'
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - '{{environment.outputs.ContainerSecurityGroup}}'
+          Subnets:
+            - '{{environment.outputs.PublicSubnetOne}}'
+            - '{{environment.outputs.PublicSubnetTwo}}'
+            - '{{environment.outputs.PublicSubnetThree}}'
+      TaskDefinition: !Ref 'TaskDefinition'
+      LoadBalancers:
+        - ContainerName: '{{service_instance.name}}'
+          ContainerPort: '{{service_instance.inputs.port}}'
+          TargetGroupArn: !Ref 'TargetGroup'
+  # A target group. This is used for keeping track of all the tasks, and
+  # what IP addresses / port numbers they have. You can query it yourself,
+  # to use the addresses yourself, but most often this target group is just
+  # connected to an application load balancer, or network load balancer, so
+  # it can automatically distribute traffic across all the targets.
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      TargetType: ip
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /health
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200-299
+      # Note that the Name property has a 32 character limit, which could be
+      # reached by using either {{service.name}}, {{service_instance.name}}
+      # or a combination of both as we're doing here, so we truncate the name to 29 characters
+      # plus an ellipsis different from '...' or '---' to avoid running into errors.
+      Name: '{{(service.name~"--"~service_instance.name)|truncate(29, true, "zzz")}}'
+      Port: '{{service_instance.inputs.port}}'
+      Protocol: HTTP
+      UnhealthyThresholdCount: 10
+      VpcId: '{{environment.outputs.VpcId}}'
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '5'
+        - Key: slow_start.duration_seconds
+          Value: '60'
+  # Create a rule on the load balancer for routing traffic to the target group
+  LoadBalancerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - TargetGroupArn: !Ref 'TargetGroup'
+          Type: 'forward'
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - '*'
+      ListenerArn: !Ref LoadBalancerListener
+      Priority: 1
+  EcsSecurityGroupIngressFromALB:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress from the ALB
+      GroupId: '{{environment.outputs.ContainerSecurityGroup}}'
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref 'LoadBalancerSG'
+  # Load balancer, hosted in public subnets that is accessible
+  # to the public or internally depending on the scope. It is 
+  # intended to route traffic to one or more public/private
+  # facing services.
+  LoadBalancerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the public facing load balancer
+      VpcId: '{{environment.outputs.VpcId}}'
+      SecurityGroupIngress:
+        {% if 'public' == service_instance.inputs.scope %}
+        # Allow access to ALB from anywhere on the internet
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: -1
+        {% else %}
+        # Allow access only from the VPC CIDR
+        - CidrIp: '{{environment.outputs.VpcCIDR}}'
+          IpProtocol: -1
+          FromPort: '{{service_instance.inputs.port}}'
+          ToPort: '{{service_instance.inputs.port}}'
+      {% endif %}
+  {% if 'public' == service_instance.inputs.scope %}
+  {% set scheme = 'internet-facing' %}
+  {% set port = '80' %}
+  {% else %}
+  {% set scheme = 'internal' %}
+  {% set port = service_instance.inputs.port %}
+  {% endif %}
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: '{{scheme}}'
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: '30'
+      Subnets:
+        # The load balancer is placed into the public subnets, so that traffic
+        # from the internet can reach the load balancer directly via the internet gateway
+        - '{{environment.outputs.PublicSubnetOne}}'
+        - '{{environment.outputs.PublicSubnetTwo}}'
+        - '{{environment.outputs.PublicSubnetThree}}'
+      SecurityGroups: [!Ref 'LoadBalancerSG']
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn:
+      - LoadBalancer
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref 'TargetGroup'
+          Type: 'forward'
+      LoadBalancerArn: !Ref 'LoadBalancer'
+      Port: '{{port}}'
+      Protocol: HTTP
+  RecordSet:
+    Type: AWS::Route53::RecordSet
+    DependsOn:
+      - LoadBalancer
+    Properties:
+      AliasTarget:
+        HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
+        DNSName: !GetAtt LoadBalancer.DNSName
+      HostedZoneId: '{{environment.outputs.HostedZoneId}}'
+      Name: '{{service.name}}.{{environment.outputs.DnsHostname}}'
+      Type: A
+  VirtualNode:
+    Type: AWS::AppMesh::VirtualNode
+    Properties:
+      MeshName: '{{environment.outputs.MeshName}}'
+      Spec:
+        ServiceDiscovery:
+          DNS:
+            Hostname: '{{service.name}}.{{environment.outputs.DnsHostname}}'
+        Logging:
+          AccessLog:
+            File:
+              Path: "/dev/stdout"
+        Listeners:
+          - HealthCheck:
+              HealthyThreshold: 3
+              IntervalMillis: 10000
+              Path: "/health"
+              Port: '{{service_instance.inputs.port}}'
+              Protocol: http
+              TimeoutMillis: 5000
+              UnhealthyThreshold: 3
+            PortMapping:
+              Port: '{{service_instance.inputs.port}}'
+              Protocol: http
+        {% if service_instance.inputs.service_backends|length %}
+        Backends:
+          {% set backends = service_instance.inputs.service_backends.split(';') %}
+          {% for backend in backends %}
+          - VirtualService:
+              VirtualServiceName: '{{backend}}.{{environment.outputs.DnsHostname}}'
+              {% endfor %}        
+        {% endif %}
+      VirtualNodeName: '{{service_instance.name}}-lb'
+  VirtualService:
+    Type: AWS::AppMesh::VirtualService
+    Properties:
+      MeshName: '{{environment.outputs.MeshName}}'
+      Spec:
+        Provider:
+          VirtualNode:
+            VirtualNodeName: !GetAtt VirtualNode.VirtualNodeName
+      VirtualServiceName: '{{service.name}}.{{environment.outputs.DnsHostname}}'
+Outputs:
+  ServiceEndpoint:
+    Description: The URL to access the service
+    Value: !Sub "http://${LoadBalancer.DNSName}"
+Transform: AWS::Serverless-2016-10-31
