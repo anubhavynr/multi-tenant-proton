@@ -35,7 +35,6 @@ Resources:
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
-      ExecutionRoleArn: '{{environment.outputs.ECSTaskExecutionRole}}'
       TaskRoleArn: !Ref "AWS::NoValue"
       ContainerDefinitions:
         - Name: '{{service_instance.name}}'
