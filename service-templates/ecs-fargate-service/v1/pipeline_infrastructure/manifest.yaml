@@ -11,7 +11,7 @@ infrastructure:
           - npm install
           - npm run cdk -- deploy --require-approval never
           # Notify AWS Proton of deployment status
-          - aws proton notify-resource-deployment-status-change --resource-arn $RESOURCE_ARN --status SUCCEEDED --outputs file://./proton-outputs.json
+          - aws proton notify-resource-deployment-status-change --resource-arn $RESOURCE_ARN --status SUCCEEDED 
         deprovision:
           # Install dependencies and destroy resources
           - npm install
