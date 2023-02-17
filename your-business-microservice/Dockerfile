@@ -1,3 +1,3 @@
 FROM  nginx
-COPY static.html /usr/share/nginx/html
+COPY your-business-microservice/static.html /usr/share/nginx/html
 
