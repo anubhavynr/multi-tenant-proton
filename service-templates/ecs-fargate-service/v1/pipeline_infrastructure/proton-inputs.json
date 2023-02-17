@@ -5,19 +5,19 @@
     }
   },
   "service": {
-    "name": "testservice",
+    "name": "my-service",
     "repository_connection_arn": "arn:aws:codestar-connections:us-west-2:779954754415:connection/104e7f4a-12ed-4b2f-8990-32e23ef63533",
     "repository_id": "anubhavynr/multi-tenant-proton",
     "branch_name": "main"
   },
   "service_instances": [
     {
-      "name": "tenant1-testservice",
+      "name": "tenant1-service",
       "inputs": {
         "port": 80,
         "desired_count": 1,
         "task_size": "x-small",
-        "image": "public.ecr.aws/aws-containers/proton-demo-image:1e5ca1d",
+        "image": "",
         "load_balanced": true,
         "load_balanced_public": true
       },

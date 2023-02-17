@@ -10,11 +10,8 @@ infrastructure:
           # Install dependencies
           - npm install
           - npm run cdk -- deploy --require-approval never
-          # Script to convert CFN outputs into outputs for Proton
-          - chmod +x ./cdk-to-proton.sh
-          - cat proton-outputs.json | ./cdk-to-proton.sh > outputs.json
           # Notify AWS Proton of deployment status
-          - aws proton notify-resource-deployment-status-change --resource-arn $RESOURCE_ARN --status SUCCEEDED --outputs file://./outputs.json
+          - aws proton notify-resource-deployment-status-change --resource-arn $RESOURCE_ARN --status SUCCEEDED --outputs file://./proton-outputs.json
         deprovision:
           # Install dependencies and destroy resources
           - npm install
