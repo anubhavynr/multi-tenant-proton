@@ -89,6 +89,12 @@ export class PipelineInfrastructureStack extends cdk.Stack {
       ],
     }));
 
+    buildProject.addToRolePolicy(new iam.PolicyStatement({
+      resources: ['*'],
+      actions: [
+        'proton:GetService',
+      ],
+    }));
     
     // Add the build stage to our pipeline
     pipeline.addStage({

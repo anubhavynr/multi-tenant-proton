@@ -1,7 +1,7 @@
 {
   "pipeline": {
     "inputs": {
-      "dockerfile": "Dockerfile"
+      "dockerfile": "your-business-microservice/Dockerfile"
     }
   },
   "service": {
