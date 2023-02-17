@@ -2,8 +2,11 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { PipelineInfrastructureStack } from '../lib/pipeline_infrastructure-stack';
+import input from "../proton-inputs.json";
 
 const app = new cdk.App();
-new PipelineInfrastructureStack(app, 'ProtonPipeline', {
+const service = input.service;
+
+new PipelineInfrastructureStack(app, service.name + 'Pipeline', {
   env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
 });
