@@ -83,7 +83,7 @@ export class PipelineInfrastructureStack extends cdk.Stack {
     });
     
     buildProject.addToRolePolicy(new iam.PolicyStatement({
-      resources: [ecr_repo.repositoryArn],
+      resources: ['*'],
       actions: [
         'ecr:*',
       ],

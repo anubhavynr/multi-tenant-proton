@@ -24,7 +24,7 @@ phases:
   post_build:
     commands:
         - aws proton --endpoint-url https://proton.$AWS_DEFAULT_REGION.amazonaws.com --region $AWS_DEFAULT_REGION get-service --name $service_name | jq -r .service.spec > service.yaml
-        - yq w service.yaml 'instances[*].spec.image' \"$IMAGE_ID\" > rendered_service.yaml
+        - yq 'instances[*].spec.image' \"$IMAGE_ID\" service.yaml > rendered_service.yaml
         - cat rendered_service.yaml
 
 artifacts:
