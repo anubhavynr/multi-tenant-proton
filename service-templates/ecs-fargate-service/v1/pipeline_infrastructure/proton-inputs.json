@@ -1,0 +1,37 @@
+{
+  "pipeline": {
+    "inputs": {
+      "dockerfile": "Dockerfile"
+    }
+  },
+  "service": {
+    "name": "testservice",
+    "repository_connection_arn": "arn:aws:codestar-connections:us-west-2:779954754415:connection/104e7f4a-12ed-4b2f-8990-32e23ef63533",
+    "repository_id": "anubhavynr/multi-tenant-proton",
+    "branch_name": "main"
+  },
+  "service_instances": [
+    {
+      "name": "tenant1-testservice",
+      "inputs": {
+        "port": 80,
+        "desired_count": 1,
+        "task_size": "x-small",
+        "image": "public.ecr.aws/aws-containers/proton-demo-image:1e5ca1d",
+        "load_balanced": true,
+        "load_balanced_public": true
+      },
+      "environment": {
+        "account_id": "779954754415",
+        "name": "tenant1-environment",
+        "outputs": {
+          "ECSClusterArn": "arn:aws:ecs:us-west-2:779954754415:cluster/tenant1-environment",
+          "ECSClusterSecGrps": "[]",
+          "VPCId": "vpc-03a00d981d672c294",
+          "ECSClusterName": "tenant1-environment",
+          "ECSClusterSDNamespace": "tenant1.saasapplication.com"
+        }
+      }
+    }
+  ]
+}
