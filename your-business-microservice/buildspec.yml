@@ -6,7 +6,7 @@ phases:
     commands:
         - pip3 install --upgrade --user awscli
         - echo 'f6bd1536a743ab170b35c94ed4c7c4479763356bd543af5d391122f4af852460  yq_linux_amd64' > yq_linux_amd64.sha
-        - wget https://github.com/mikefarah/yq/releases/download/4.30.8/yq_linux_amd64
+        - wget https://github.com/mikefarah/yq/releases/download/v4.30.8/yq_linux_amd64
         - sha256sum -c yq_linux_amd64.sha
         - mv yq_linux_amd64 /usr/bin/yq
         - chmod +x /usr/bin/yq
