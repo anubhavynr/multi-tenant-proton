@@ -120,7 +120,7 @@ export class PipelineInfrastructureStack extends cdk.Stack {
     const stepFunctionAction = new codepipeline_actions.StepFunctionInvokeAction({
       actionName: 'InvokeStepFunc',
       stateMachine: simpleStateMachine,
-      stateMachineInput: codepipeline_actions.StateMachineInput.filePath(buildOutput.atPath('assets/service.yaml'))
+      stateMachineInput: codepipeline_actions.StateMachineInput.filePath(buildOutput.atPath('your-business-microservice/service.yaml'))
         
     });
     
