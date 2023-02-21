@@ -32,4 +32,4 @@ artifacts:
   discard-paths: yes
   files:
     # List of local artifacts that will be passed down the pipeline
-    - rendered_service.yaml
+    - service.yaml

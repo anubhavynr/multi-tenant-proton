@@ -1,3 +1,3 @@
-FROM  nginx
-COPY your-business-microservice/static.html /usr/share/nginx/html
+FROM public.ecr.aws/aws-containers/proton-demo-image:1e5ca1d
+
 
