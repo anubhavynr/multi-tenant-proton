@@ -112,10 +112,14 @@ export class PipelineInfrastructureStack extends cdk.Stack {
       ],
     });
     
-    const startState = new stepfunctions.Pass(this, 'StartState');
+    const map = new stepfunctions.Map(this, 'Map State', {
+      itemsPath: stepfunctions.JsonPath.stringAt('$.instances'),
+    });
+    map.iterator(new stepfunctions.Pass(this, 'Pass State'));
+
     const simpleStateMachine  = new stepfunctions.StateMachine(this, 'SimpleStateMachine', {
       stateMachineName: "protonDeployment",
-      definition: startState,
+      definition: map,
     });
     
     const stepFunctionAction = new codepipeline_actions.StepFunctionInvokeAction({
