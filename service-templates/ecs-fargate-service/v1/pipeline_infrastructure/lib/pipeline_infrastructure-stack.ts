@@ -122,7 +122,7 @@ export class PipelineInfrastructureStack extends cdk.Stack {
       parameters: {
         'DeploymentType': 'CURRENT_VERSION',
         'Name.$': '$.name',
-        'ServiceName': "$.service_name"
+        'ServiceName': '$.servicename'
       },
       iamResources: ['*']
     }));
