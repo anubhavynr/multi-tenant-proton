@@ -7,6 +7,7 @@ import * as codebuild from 'aws-cdk-lib/aws-codebuild';
 import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as stepfunctions from 'aws-cdk-lib/aws-stepfunctions';
+import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 
 
 import input from "../proton-inputs.json";
@@ -115,7 +116,16 @@ export class PipelineInfrastructureStack extends cdk.Stack {
     const map = new stepfunctions.Map(this, 'Map State', {
       itemsPath: stepfunctions.JsonPath.stringAt('$.instances'),
     });
-    map.iterator(new stepfunctions.Pass(this, 'Pass State'));
+    map.iterator(new tasks.CallAwsService(this, 'updateServiceInstance', {
+      service: 'proton',
+      action: 'updateServiceInstance',
+      parameters: {
+        'DeploymentType': 'CURRENT_VERSION',
+        'Name.$': '$.name',
+        'ServiceName': "$.service_name"
+      },
+      iamResources: ['*']
+    }));
 
     const simpleStateMachine  = new stepfunctions.StateMachine(this, 'SimpleStateMachine', {
       stateMachineName: "protonDeployment",
