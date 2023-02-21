@@ -6,6 +6,9 @@ import * as codepipeline from 'aws-cdk-lib/aws-codepipeline';
 import * as codebuild from 'aws-cdk-lib/aws-codebuild';
 import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
+import * as stepfunctions from 'aws-cdk-lib/aws-stepfunctions';
+
+
 import input from "../proton-inputs.json";
 
 export class PipelineInfrastructureStack extends cdk.Stack {
@@ -33,7 +36,7 @@ export class PipelineInfrastructureStack extends cdk.Stack {
      
     
     // Declare source code as an artifact
-    const sourceOutput = new codepipeline.Artifact();
+    const sourceOutput = new codepipeline.Artifact('SourceArtifact');
 
     // Add source stage to pipeline
     pipeline.addStage({
@@ -52,7 +55,7 @@ export class PipelineInfrastructureStack extends cdk.Stack {
     
     
     //Build stage
-    const buildOutput = new codepipeline.Artifact();
+    const buildOutput = new codepipeline.Artifact('BuildArtifact');
     
     //Declare a new CodeBuild project
     const buildProject = new codebuild.PipelineProject(this, 'Build', {
@@ -109,5 +112,22 @@ export class PipelineInfrastructureStack extends cdk.Stack {
       ],
     });
     
+    const startState = new stepfunctions.Pass(this, 'StartState');
+    const simpleStateMachine  = new stepfunctions.StateMachine(this, 'SimpleStateMachine', {
+      definition: startState,
+    });
+    
+    const stepFunctionAction = new codepipeline_actions.StepFunctionInvokeAction({
+      actionName: 'InvokeStepFunc',
+      stateMachine: simpleStateMachine,
+      stateMachineInput: codepipeline_actions.StateMachineInput.filePath(buildOutput.atPath('assets/service.yaml'))
+        
+    });
+    
+    pipeline.addStage({
+      stageName: 'InvokeStepFunctions',
+      actions: [stepFunctionAction],
+    });
+
   }
 }

@@ -5,7 +5,7 @@
     }
   },
   "service": {
-    "name": "my-service",
+    "name": "service1",
     "repository_connection_arn": "arn:aws:codestar-connections:us-west-2:779954754415:connection/104e7f4a-12ed-4b2f-8990-32e23ef63533",
     "repository_id": "anubhavynr/multi-tenant-proton",
     "branch_name": "main"
