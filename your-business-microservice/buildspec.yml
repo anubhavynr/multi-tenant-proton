@@ -26,6 +26,7 @@ phases:
         - aws proton --endpoint-url https://proton.$AWS_DEFAULT_REGION.amazonaws.com --region $AWS_DEFAULT_REGION get-service --name $service_name | jq -r .service.spec > service.yaml
         - cat service.yaml
         - IMAGE=$IMAGE_ID yq -i '.instances[].spec.image = strenv(IMAGE)' service.yaml
+        - SERVICENAME=$service_name yq -i '.service_name = strenv(SERVICENAME)' service.yaml
         - cat service.yaml
         - yq -o=json '.' service.yaml > service.json 
 
