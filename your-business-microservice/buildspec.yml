@@ -27,7 +27,7 @@ phases:
         - cat service.yaml
         - IMAGE=$IMAGE_ID yq -i '.instances[].spec.image = strenv(IMAGE)' service.yaml
         - cat service.yaml
-        - cp service.yaml pipeline_infrastructure/service.yaml
+        - cp service.yaml pipeline_infrastructure
 
 artifacts:
   discard-paths: yes
