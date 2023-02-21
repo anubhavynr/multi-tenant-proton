@@ -27,10 +27,10 @@ phases:
         - cat service.yaml
         - IMAGE=$IMAGE_ID yq -i '.instances[].spec.image = strenv(IMAGE)' service.yaml
         - cat service.yaml
-        - cp service.yaml your-business-microservice/
+        - yq -o=json '.' service.yaml > service.json 
 
 artifacts:
   discard-paths: yes
   files:
     # List of local artifacts that will be passed down the pipeline
-    - your-business-microservice/service.yaml
+    - service.json

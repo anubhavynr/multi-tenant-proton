@@ -114,13 +114,14 @@ export class PipelineInfrastructureStack extends cdk.Stack {
     
     const startState = new stepfunctions.Pass(this, 'StartState');
     const simpleStateMachine  = new stepfunctions.StateMachine(this, 'SimpleStateMachine', {
+      stateMachineName: "protonDeployment",
       definition: startState,
     });
     
     const stepFunctionAction = new codepipeline_actions.StepFunctionInvokeAction({
       actionName: 'InvokeStepFunc',
       stateMachine: simpleStateMachine,
-      stateMachineInput: codepipeline_actions.StateMachineInput.filePath(buildOutput.atPath('your-business-microservice/service.yaml'))
+      stateMachineInput: codepipeline_actions.StateMachineInput.filePath(buildOutput.atPath('service.json'))
         
     });
     
