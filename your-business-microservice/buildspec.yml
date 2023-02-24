@@ -33,7 +33,7 @@ phases:
       - yq -o=json '.' service_spec_enhanced.yaml > service_spec.json
       - cat service_spec.json
       - service_spec=$(sed "s/\"/'/g" service_spec.yaml)
-      - jq --arg service_spec "$service_spec" '. + {service_spec: $service_spec}' service_spec.json > build_output.json
+      - jq --arg service_spec "$service_spec" '. + {service_spec:$service_spec}' service_spec.json > build_output.json
       - cat build_output.json
 artifacts:
   discard-paths: yes
