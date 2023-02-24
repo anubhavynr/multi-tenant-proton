@@ -6,8 +6,7 @@ phases:
       docker: 18
     commands:
       - pip3 install --upgrade --user awscli
-      - wget -O /tmp/yq_linux_amd64.tar.gz
-        https://github.com/mikefarah/yq/releases/download/v4.30.8/yq_linux_amd64.tar.gz
+      - wget -O /tmp/yq_linux_amd64.tar.gz https://github.com/mikefarah/yq/releases/download/v4.30.8/yq_linux_amd64.tar.gz
       - tar -xvzf /tmp/yq_linux_amd64.tar.gz && mv yq_linux_amd64 /usr/bin/yq
   pre_build:
     commands:
@@ -28,15 +27,13 @@ phases:
         $AWS_DEFAULT_REGION get-service --name $service_name | jq -r
         .service.spec > service_spec.yaml
       - cat service_spec.yaml
-      - IMAGE=$IMAGE_ID yq -i '.instances[].spec.image = strenv(IMAGE)'
-        service_spec.yaml
-      - SERVICENAME=$service_name yq -i '.instances[].servicename =
-        strenv(SERVICENAME)' service_spec_enhanced.yaml
+      - IMAGE=$IMAGE_ID yq -i '.instances[].spec.image = strenv(IMAGE)' service_spec.yaml
+      - SERVICENAME=$service_name yq -i '.instances[].servicename = strenv(SERVICENAME)' service_spec_enhanced.yaml
       - cat service_spec_enhanced.yaml
       - yq -o=json '.' service_spec_enhanced.yaml > service_spec.json
       - cat service_spec.json
       - service_spec=$(sed "s/\"/'/g" service_spec.yaml)
-      - "jq --arg service_spec \"$service_spec\" '. + {service_spec": $service_spec}' service_spec.json > build_output.json
+      - jq --arg service_spec "$service_spec" '. + {service_spec: $service_spec}' service_spec.json > build_output.json
       - cat build_output.json
 artifacts:
   discard-paths: yes
