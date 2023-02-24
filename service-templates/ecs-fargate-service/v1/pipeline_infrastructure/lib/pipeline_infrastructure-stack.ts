@@ -122,7 +122,8 @@ export class PipelineInfrastructureStack extends cdk.Stack {
       parameters: {
         'DeploymentType': 'CURRENT_VERSION',
         'Name.$': '$.name',
-        'ServiceName.$': '$.servicename'
+        'ServiceName.$': '$.servicename',
+        'Spec.$': '$.service_spec'
       },
       iamResources: ['*']
     }));
@@ -135,7 +136,7 @@ export class PipelineInfrastructureStack extends cdk.Stack {
     const stepFunctionAction = new codepipeline_actions.StepFunctionInvokeAction({
       actionName: 'InvokeStepFunc',
       stateMachine: simpleStateMachine,
-      stateMachineInput: codepipeline_actions.StateMachineInput.filePath(buildOutput.atPath('service.json'))
+      stateMachineInput: codepipeline_actions.StateMachineInput.filePath(buildOutput.atPath('build_output.json'))
         
     });
     
