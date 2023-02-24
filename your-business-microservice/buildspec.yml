@@ -30,7 +30,7 @@ phases:
         - cat service_spec_enhanced.yaml
         - yq -o=json '.' service_spec_enhanced.yaml > service_spec.json #step function takes json not yaml
         - cat service_spec.json 
-        - service_spec=$(echo $a | sed  "s/\"/'/g" service_spec.yaml ) #replaced double with single quotes
+        - service_spec=$(sed "s/\"/'/g" service_spec.yaml) #replaced double with single quotes
         - jq --arg service_spec "$service_spec" '. + {service_spec: [$service_spec]}' service_spec.json > build_output.json #step function needs original spec to update service instance
         - cat build_output.json
 
