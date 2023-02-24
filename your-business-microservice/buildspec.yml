@@ -28,9 +28,8 @@ phases:
         .service.spec > service_spec.yaml
       - cat service_spec.yaml
       - IMAGE=$IMAGE_ID yq -i '.instances[].spec.image = strenv(IMAGE)' service_spec.yaml
-      - SERVICENAME=$service_name yq -i '.instances[].servicename = strenv(SERVICENAME)' service_spec_enhanced.yaml
-      - cat service_spec_enhanced.yaml
-      - yq -o=json '.' service_spec_enhanced.yaml > service_spec.json
+      - SERVICENAME=$service_name yq -i '.instances[].servicename = strenv(SERVICENAME)' service_spec.yaml
+      - yq -o=json '.' service_spec.yaml > service_spec.json
       - cat service_spec.json
       - service_spec=$(sed "s/\"/'/g" service_spec.yaml)
       - jq --arg service_spec "$service_spec" '. + {service_spec:$service_spec}' service_spec.json > build_output.json
