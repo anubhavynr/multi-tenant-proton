@@ -115,13 +115,18 @@ export class PipelineInfrastructureStack extends cdk.Stack {
     
     const map = new stepfunctions.Map(this, 'Map State', {
       itemsPath: stepfunctions.JsonPath.stringAt('$.instances'),
+      parameters: {
+        "instance.$": "$$.Map.Item.Value",
+        "service_spec.$": "$.service_spec",
+        "servicename.$": "$.servicename"
+      }
     });
     map.iterator(new tasks.CallAwsService(this, 'updateServiceInstance', {
       service: 'proton',
       action: 'updateServiceInstance',
       parameters: {
         'DeploymentType': 'CURRENT_VERSION',
-        'Name.$': '$.name',
+        'Name.$': '$.instance.name',
         'ServiceName.$': '$.servicename',
         'Spec.$': '$.service_spec'
       },
