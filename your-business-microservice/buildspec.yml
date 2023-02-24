@@ -26,13 +26,12 @@ phases:
         https://proton.$AWS_DEFAULT_REGION.amazonaws.com --region
         $AWS_DEFAULT_REGION get-service --name $service_name | jq -r
         .service.spec > service_spec.yaml
-      - cat service_spec.yaml
-      - IMAGE=$IMAGE_ID yq -i '.instances[].spec.image = strenv(IMAGE)' service_spec.yaml
-      - SERVICENAME=$service_name yq -i '.servicename = strenv(SERVICENAME)' service_spec.yaml
-      - yq -o=json '.' service_spec.yaml > service_spec.json
-      - cat service_spec.json
       - service_spec=$(sed "s/\"/'/g" service_spec.yaml)
-      - jq --arg service_spec "$service_spec" '. + {service_spec:$service_spec}' service_spec.json > build_output.json
+      - IMAGE=$IMAGE_ID yq -i '.instances[].spec.image = strenv(IMAGE)' service_spec.yaml
+      - cat service_spec.yaml
+      - yq -o=json '.' service_spec.yaml > service_spec.json
+      - jq --arg servicename "$service_name" '. + {servicename:$servicename}' service_spec.json  > service_spec_modified.json
+      - jq --arg service_spec "$service_spec" '. + {service_spec:$service_spec}' service_spec_modified.json > build_output.json
       - cat build_output.json
 artifacts:
   discard-paths: yes
